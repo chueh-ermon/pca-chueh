@@ -1,30 +1,31 @@
-%clear; 
+clearvars -except batch; 
 close all; clc
 
-%load 2017-05-12_batchdata_final.mat
+% load 2017-05-12_batchdata_final.mat
 
 numBat = 46;
-
-PCAdata = zeros(numBat, 5000);
+numCycles = 12;
+forEvery = 1;
+PCAdata = [];
+startAt = 200;
 
 for i = 1:numBat
-    for j = 100:100:500
-        start_idx = j * 10 - 999;
-        end_idx = j * 10;
-        PCAdata(i, start_idx:end_idx) = ...
-           batch(i).cycles(j).discharge_dQdVvsV.dQdV(1,:);
+    PCAdata_row = [];
+    for j = 1:forEvery:numCycles
+        cycle = j+startAt;
+        PCAdata_row = [PCAdata_row, batch(i).cycles(cycle).discharge_dQdVvsV.dQdV(1,:)];
     end
+    PCAdata = vertcat(PCAdata, PCAdata_row);
 end
 
 PCAdata(isnan(PCAdata)) = 0;
 
-[coeff, score, latent, ~, explained, mu] = pca(PCAdata);
+PCAdata_smooth = zeros(size(PCAdata));
+for i = 1:numBat
+    PCAdata_smooth(i,:) = smooth(PCAdata(i,:));
+end
 
-figure()
-plot(explained,'o-')
-ylabel('Percent Variance Explained')
-xlabel('PC Index')
-
+%% create battery color grade for future plots
 bat_label = zeros(numBat,1);
 for j = 1:numBat
     bat_label(j,1) = numel(batch(j).cycles); % TODO: change to last cycle before degraded
@@ -40,39 +41,18 @@ for i = 1:numBat
 batt_color_grade(i) = ceil((bat_label(i) - min_cycle) ./ (max_cycle - min_cycle) * 64);
 end
 
-figAbsolute = figure();
-figNormalized = figure();
+%% Perform PCA
+[coeff, score, latent, ~, explained, mu] = pca(PCAdata);
 
-for i = 1:numBat
-    color_ind = batt_color_grade(i);
-    figure(figAbsolute)
-    plot(batch(i).summary.cycle, batch(i).summary.QDischarge, ...
-        'Color', CM(batt_color_grade(i),:), 'MarkerSize',15);
-    hold on
-    plot(batch(i).summary.cycle, batch(i).summary.QCharge, ...
-        'Color', CM(batt_color_grade(i,1),:), 'MarkerSize',15);
-    hold on
-    figure(figNormalized)
-    max_Qd = max(batch(i).summary.QDischarge);
-    max_Qc = max(batch(i).summary.QCharge);
-    plot(batch(i).summary.cycle, batch(i).summary.QDischarge ./ max_Qd, ...
-        'Color', CM(batt_color_grade(i),:), 'MarkerSize',15);
-    hold on
-    plot(batch(i).summary.cycle, batch(i).summary.QCharge ./ max_Qc, ...
-        'Color', CM(batt_color_grade(i,1),:), 'MarkerSize',15);
-    hold on
-end
+%% Plot percent variance explained
+figure('NumberTitle', 'off', 'Name', 'Per Variance Explained dQdV 201 to 212');
+plot(explained,'o-')
+ylabel('Percent Variance Explained')
+xlabel('PC Index')
+title('Percent Variance Explained (dQdV for cycles 201-212)')
 
-figure(figNormalized)
-xlabel('Cycle')
-ylabel('Normalized Remaining Capacity (%)')
-ylim([.8,1])
-figure(figAbsolute)
-xlabel('Remaing Capacity (Ah)')
-ylabel('Cycle')
-ylim([0.88,1.1])
-
-figure()
+%% Plot score vs battery using batt_color_range
+figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index dQdV 201 to 212');
 for j = 1:size(score,2)
     subplot(5,9,j)
     hold on
@@ -82,6 +62,64 @@ for j = 1:size(score,2)
     end
     xlabel('Battery Index')
     ylabel(['Score ', num2str(j)])
+end
+
+%% Plot first principle component score using batt_color_range
+figure('NumberTitle', 'off', 'Name', 'First Principle Component Score 201 to 212');
+for i = 1:numBat
+    color_ind = batt_color_grade(i);
+    plot(i, score(i,2),'.','Color',CM(color_ind,:),'MarkerSize',16)
+    hold on
+end
+title('First Principle Component Score')
+
+%% Plot score vs score for first 12 PCs
+figure()
+for j = 1:numCycles
+    subplot(3,4,j)
+    hold on
+    for i = 1:numBat
+        color_ind = batt_color_grade(i);
+        plot(score(i,j),score(i,j+1),'.','Color',CM(color_ind,:),'MarkerSize',16)
+        xlabel(['Score ',num2str(j)])
+        ylabel(['Score ',num2str(j+1)])
+    end
+end
+
+%% Graph the first principle component on top of the PCAdata
+figure()
+for i = 1:numBat
+    color_ind = batt_color_grade(i);
+    plot(1:numCycles*1000, PCAdata(i,:), 'Color', CM(color_ind,:))
+    hold on
+end
+PC1 = coeff(:,1)';
+plot(1:numCycles*1000, PC1, 'Color', 'k', 'LineWidth', 1.5)
+title('First Principle Component Coefficients over PCAdata')
+
+
+figure('NumberTitle', 'off', 'Name', '1st PC Coefficients over PCAdata dQdV 201 to 212');
+for j = 1:numCycles
+    subplot(3,4,j)
+    for i = 1:numBat
+    color_ind = batt_color_grade(i);
+    plot(1:1000, PCAdata(i,(j*1000 - 999):(j*1000)), 'Color', CM(color_ind,:))
+    hold on
+    end
+    PC1 = coeff((j*1000 - 999):(j*1000),1)';
+    plot(1:1000, PC1, 'Color', 'k', 'LineWidth', 1.5)
+end
+
+figure('NumberTitle', 'off', 'Name', '2nd PC Coefficients over PCAdata dQdV 201 to 212');
+for j = 1:numCycles
+    subplot(3,4,j)
+    for i = 1:numBat
+    color_ind = batt_color_grade(i);
+    plot(1:1000, PCAdata(i,(j*1000 - 999):(j*1000)), 'Color', CM(color_ind,:))
+    hold on
+    end
+    PC2 = coeff((j*1000 - 999):(j*1000),2)';
+    plot(1:1000, PC1, 'Color', 'k', 'LineWidth', 1.5)
 end
 
 
