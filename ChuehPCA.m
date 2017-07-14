@@ -1,7 +1,7 @@
 clearvars -except batch; 
 close all; clc
 
-% load 2017-05-12_batchdata_final.mat
+%load 2017-05-12_batchdata_final.mat
 
 numBat = 46;
 numCycles = 12;
@@ -45,7 +45,7 @@ end
 [coeff, score, latent, ~, explained, mu] = pca(PCAdata);
 
 %% Plot percent variance explained
-figure('NumberTitle', 'off', 'Name', 'Per Variance Explained dQdV 201 to 212');
+%figure('NumberTitle', 'off', 'Name', 'Per Variance Explained dQdV 201 to 212');
 plot(explained,'o-')
 ylabel('Percent Variance Explained')
 xlabel('PC Index')
@@ -64,14 +64,27 @@ for j = 1:size(score,2)
     ylabel(['Score ', num2str(j)])
 end
 
+%% Plot first 12 PC score vs battery using batt_color_range
+figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index dQdV 201 to 212');
+for j = 1:12
+    subplot(3,4,j)
+    hold on
+    for i = 1:numBat
+        color_ind = batt_color_grade(i);
+        plot(i, score(i,j),'.','Color',CM(color_ind,:),'MarkerSize',16)
+    end
+    xlabel('Battery Index')
+    ylabel(['Score ', num2str(j)])
+end
+
 %% Plot first principle component score using batt_color_range
-figure('NumberTitle', 'off', 'Name', 'First Principle Component Score 201 to 212');
+figure('NumberTitle', 'off', 'Name', 'First Principal Component Score 201 to 212');
 for i = 1:numBat
     color_ind = batt_color_grade(i);
     plot(i, score(i,2),'.','Color',CM(color_ind,:),'MarkerSize',16)
     hold on
 end
-title('First Principle Component Score')
+title('First Principal Component Score')
 
 %% Plot score vs score for first 12 PCs
 figure()
@@ -89,23 +102,59 @@ end
 %% Graph the first principle component on top of the PCAdata
 figure()
 for i = 1:numBat
+    yyaxis left
     color_ind = batt_color_grade(i);
-    plot(1:numCycles*1000, PCAdata(i,:), 'Color', CM(color_ind,:))
+    plot(1:numCycles*1000, PCAdata(i,:), '-', 'Color', CM(color_ind,:))
     hold on
 end
+ylabel('dQ/dV (Ahs/V)')
+yyaxis right
 PC1 = coeff(:,1)';
-plot(1:numCycles*1000, PC1, 'Color', 'k', 'LineWidth', 1.5)
-title('First Principle Component Coefficients over PCAdata')
+plot(1:numCycles*1000, PC1, 'Color', 'k')
+ylabel('Principal Component 1 Coefficients')
+title('First Principal Component Coefficients over PCAdata')
 
+figure()
+for i = 1:numBat
+    yyaxis left
+    color_ind = batt_color_grade(i);
+    plot(1:numCycles*1000, PCAdata(i,:), '-', 'Color', CM(color_ind,:))
+    hold on
+end
+ylabel('dQ/dV (Ahs/V)')
+yyaxis right
+PC2 = coeff(:,2)';
+plot(1:numCycles*1000, PC2, 'Color', 'k')
+ylabel('Principal Component 2 Coefficients')
+title('Second Principal Component Coefficients over PCAdata')
+
+figure()
+% PC1 = coeff(:,1)';
+% plot(1:numCycles*1000, PC1, 'Color', 'r')
+% hold on
+% PC2 = coeff(:,2)';
+% plot(1:numCycles*1000, PC2, 'Color', 'b')
+% legend('Principal Component 1', 'Principal Component 2')
+for j = 1:6
+    PC = coeff(:,j)';
+    plot(1:12000, PC)
+    hold on
+end
+legend('PC 1', 'PC 2', 'PC 3', 'PC 4', 'PC 5', 'PC 6')%, 'PC 7', 'PC 8', 'PC 9', 'PC 10', 'PC 11', 'PC 12')
 
 figure('NumberTitle', 'off', 'Name', '1st PC Coefficients over PCAdata dQdV 201 to 212');
 for j = 1:numCycles
     subplot(3,4,j)
+    yyaxis left
     for i = 1:numBat
     color_ind = batt_color_grade(i);
-    plot(1:1000, PCAdata(i,(j*1000 - 999):(j*1000)), 'Color', CM(color_ind,:))
+    plot(1:1000, PCAdata(i,(j*1000 - 999):(j*1000)), '-', 'Color', CM(color_ind,:))
     hold on
     end
+    xlabel(['Cycle', j])
+    ylabel('dQ/dV (Ahs/V)')
+    yyaxis right
+    ylabel('Principal Component 1 Coefficients')
     PC1 = coeff((j*1000 - 999):(j*1000),1)';
     plot(1:1000, PC1, 'Color', 'k', 'LineWidth', 1.5)
 end
@@ -118,6 +167,10 @@ for j = 1:numCycles
     plot(1:1000, PCAdata(i,(j*1000 - 999):(j*1000)), 'Color', CM(color_ind,:))
     hold on
     end
+    xlabel(['Cycle', j])
+    ylabel('dQ/dV (Ahs/V)')
+    yyaxis right
+    ylabel('Principal Component 2 Coefficients')
     PC2 = coeff((j*1000 - 999):(j*1000),2)';
     plot(1:1000, PC1, 'Color', 'k', 'LineWidth', 1.5)
 end

@@ -1,4 +1,6 @@
-function [] = chuehDataVisual(batch, batch_date)
+function [] = chuehDataVisual(batch)
+
+close all
 
 numBat = 46;
 
@@ -17,20 +19,20 @@ for i = 1:numBat
 batt_color_grade(i) = ceil((bat_label(i) - min_cycle) ./ (max_cycle - min_cycle) * 64);
 end
 %% Plot dQdV curve at cycle 200 using the batt_color_range
-figure()
 for i = 1:numBat
     color_ind = batt_color_grade(i);
-    plot(batch(i).cycles(200).discharge_dQdVvsV.V, ...
-        batch(i).cycles(200).discharge_dQdVvsV.dQdV,'Color', CM(color_ind,:))
+    plot(batch(i).cycles(201).discharge_dQdVvsV.V, ...
+        batch(i).cycles(201).discharge_dQdVvsV.dQdV,'Color', CM(color_ind,:))
     hold on
 end
+xlabel('Voltage (V)')
+ylabel('dQ/dV (Ah/V)')
 
 %% Plot Remaining Capacity vs Cycle, raw and normalized - batt_color_range
 figAbsolute = figure();
 figNormalized = figure();
 
 for i = 1:numBat
-    color_ind = batt_color_grade(i);
     figure(figAbsolute)
     plot(batch(i).summary.cycle, batch(i).summary.QDischarge, ...
         'Color', CM(batt_color_grade(i),:), 'MarkerSize',15);
@@ -41,7 +43,6 @@ for i = 1:numBat
     
 end
 for i = 1:numBat
-    color_ind = batt_color_grade(i);
     figure(figNormalized)
     max_Qd = max(batch(i).summary.QDischarge);
     max_Qc = max(batch(i).summary.QCharge);
@@ -58,8 +59,8 @@ xlabel('Cycle')
 ylabel('Normalized Remaining Capacity (%)')
 ylim([.8,1])
 figure(figAbsolute)
-xlabel('Remaing Capacity (Ah)')
-ylabel('Cycle')
+ylabel('Remaing Capacity (Ah)')
+xlabel('Cycle')
 ylim([0.88,1.1])
 
 
