@@ -2,7 +2,7 @@ function [] = chuehDataVisual(batch)
 
 close all
 
-numBat = 46;
+numBat = 45;
 
 bat_label = zeros(numBat,1);
 for j = 1:numBat
@@ -21,12 +21,12 @@ end
 %% Plot dQdV curve at cycle 200 using the batt_color_range
 for i = 1:numBat
     color_ind = batt_color_grade(i);
-    plot(batch(i).cycles(201).discharge_dQdVvsV.V, ...
-        batch(i).cycles(201).discharge_dQdVvsV.dQdV,'Color', CM(color_ind,:))
+    plot(batch(i).cycles(51).Q, ...
+        batch(i).cycles(51).V,'Color', CM(color_ind,:))
     hold on
 end
-xlabel('Voltage (V)')
-ylabel('dQ/dV (Ah/V)')
+ylabel('Cell Voltage (V)')
+xlabel('Capacity (Qc-Qd) (Ah)')
 
 %% Plot Remaining Capacity vs Cycle, raw and normalized - batt_color_range
 figAbsolute = figure();
@@ -40,7 +40,6 @@ for i = 1:numBat
     plot(batch(i).summary.cycle, batch(i).summary.QCharge, ...
         'Color', CM(batt_color_grade(i,1),:), 'MarkerSize',15);
     hold on
-    
 end
 for i = 1:numBat
     figure(figNormalized)
@@ -62,6 +61,5 @@ figure(figAbsolute)
 ylabel('Remaing Capacity (Ah)')
 xlabel('Cycle')
 ylim([0.88,1.1])
-
 
 end

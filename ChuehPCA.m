@@ -1,19 +1,21 @@
-clearvars -except batch; 
+clearvars -except batch batch_test batch_train held_out_unfinished; 
 close all; clc
 
-%load 2017-05-12_batchdata_final.mat
+%load 2017-05-12_batchdata_modified.mat
+%load train_test_partition.mat
 
-numBat = 46;
+numBat = numel(batch_train);
 numCycles = 12;
 forEvery = 1;
 PCAdata = [];
 startAt = 200;
 
+%% Generate data for PCA input
 for i = 1:numBat
     PCAdata_row = [];
     for j = 1:forEvery:numCycles
         cycle = j+startAt;
-        PCAdata_row = [PCAdata_row, batch(i).cycles(cycle).discharge_dQdVvsV.dQdV(1,:)];
+        PCAdata_row = [PCAdata_row, batch_train(i).cycles(cycle).discharge_dQdVvsV.dQdV(1,:)];
     end
     PCAdata = vertcat(PCAdata, PCAdata_row);
 end
@@ -25,10 +27,10 @@ for i = 1:numBat
     PCAdata_smooth(i,:) = smooth(PCAdata(i,:));
 end
 
-%% create battery color grade for future plots
+%% Create battery color grade for future plots
 bat_label = zeros(numBat,1);
 for j = 1:numBat
-    bat_label(j,1) = numel(batch(j).cycles); % TODO: change to last cycle before degraded
+    bat_label(j,1) = batch_train(j).last_cycle; % TODO: change to last cycle before degraded
 end
 
 max_cycle = max(bat_label) + 1;
@@ -43,18 +45,24 @@ end
 
 %% Perform PCA
 [coeff, score, latent, ~, explained, mu] = pca(PCAdata);
-
+path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-images/dQdV_', string(startAt), '_', string(forEvery), '_', string(numCycles));
+cd (char(path))
+save(strcat('pcaResultsTest_', string(startAt), '_', string(forEvery), '_', string(numCycles)), 'coeff', 'score', 'latent', 'explained', 'mu')
+%{
 %% Plot percent variance explained
-%figure('NumberTitle', 'off', 'Name', 'Per Variance Explained dQdV 201 to 212');
 plot(explained,'o-')
 ylabel('Percent Variance Explained')
 xlabel('PC Index')
-title('Percent Variance Explained (dQdV for cycles 201-212)')
+title('Percent Variance Explained')
+file_name = char(strcat('PerVariExpTest_', string(startAt), '_', string(forEvery), '_', string(numCycles)));
+set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
+savefig(gcf, file_name);
+print(gcf, file_name,'-dpng')
 
 %% Plot score vs battery using batt_color_range
-figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index dQdV 201 to 212');
+figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index');
 for j = 1:size(score,2)
-    subplot(5,9,j)
+    subplot(5,6,j)
     hold on
     for i = 1:numBat
         color_ind = batt_color_grade(i);
@@ -63,9 +71,13 @@ for j = 1:size(score,2)
     xlabel('Battery Index')
     ylabel(['Score ', num2str(j)])
 end
+set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
+file_name = char(strcat('ScorevsBatteryTest_', string(startAt), '_', string(forEvery), '_', string(numCycles)));
+savefig(gcf, file_name);
+print(gcf, file_name,'-dpng')
 
 %% Plot first 12 PC score vs battery using batt_color_range
-figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index dQdV 201 to 212');
+figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index (first 12 PCs)');
 for j = 1:12
     subplot(3,4,j)
     hold on
@@ -76,19 +88,27 @@ for j = 1:12
     xlabel('Battery Index')
     ylabel(['Score ', num2str(j)])
 end
+set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
+file_name = char(strcat('ScorevsBattery12Test_', string(startAt), '_', string(forEvery), '_', string(numCycles)));
+savefig(gcf, file_name);
+print(gcf, file_name,'-dpng')
 
 %% Plot first principle component score using batt_color_range
-figure('NumberTitle', 'off', 'Name', 'First Principal Component Score 201 to 212');
+figure('NumberTitle', 'off', 'Name', 'First Principal Component Score');
 for i = 1:numBat
     color_ind = batt_color_grade(i);
-    plot(i, score(i,2),'.','Color',CM(color_ind,:),'MarkerSize',16)
+    plot(i, score(i,1),'.','Color',CM(color_ind,:),'MarkerSize',16)
     hold on
 end
 title('First Principal Component Score')
+set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
+file_name = char(strcat('FirstPCScoreTest_', string(startAt), '_', string(forEvery), '_', string(numCycles)));
+savefig(gcf, file_name);
+print(gcf, file_name,'-dpng')
 
 %% Plot score vs score for first 12 PCs
 figure()
-for j = 1:numCycles
+for j = 1:12
     subplot(3,4,j)
     hold on
     for i = 1:numBat
@@ -98,7 +118,38 @@ for j = 1:numCycles
         ylabel(['Score ',num2str(j+1)])
     end
 end
+set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
+file_name = char(strcat('ScorevsScore12Test_', string(startAt), '_', string(forEvery), '_', string(numCycles)));
+savefig(gcf, file_name);
+print(gcf, file_name,'-dpng')
+%}
 
+%% PCA regression
+X_ones = ones(numBat,1);
+X = [score(:,1), X_ones];
+
+[b,bint,r,rint,stats] = regress(bat_label, X);
+
+Y_pred = X * b;
+
+%figure()
+plot(Y_pred, bat_label, 'o')
+hold on
+plot(linspace(500, 1100),linspace(500,1100), 'k')
+xlabel('Predicted Cycle Number')
+ylabel('Current Cycle Number')
+title(['Cycle ' num2str(startAt+1), '-', num2str(startAt+numCycles)]) 
+print(gcf,'PredCycle_CurrCycle','-dpng')
+hold on
+
+%% Apply model to test data
+
+numTestBat = numel(batch_test)
+PCAtest = zeros(numTestBat, 1000*numCycles)
+for i = 1:numTestBat
+    PCAtest(i,
+
+%{
 %% Graph the first principle component on top of the PCAdata
 figure()
 for i = 1:numBat
@@ -137,13 +188,13 @@ figure()
 % legend('Principal Component 1', 'Principal Component 2')
 for j = 1:6
     PC = coeff(:,j)';
-    plot(1:12000, PC)
+    plot(1:numCycles*1000, PC)
     hold on
 end
 legend('PC 1', 'PC 2', 'PC 3', 'PC 4', 'PC 5', 'PC 6')%, 'PC 7', 'PC 8', 'PC 9', 'PC 10', 'PC 11', 'PC 12')
 
 figure('NumberTitle', 'off', 'Name', '1st PC Coefficients over PCAdata dQdV 201 to 212');
-for j = 1:numCycles
+for j = 1:12
     subplot(3,4,j)
     yyaxis left
     for i = 1:numBat
@@ -160,7 +211,7 @@ for j = 1:numCycles
 end
 
 figure('NumberTitle', 'off', 'Name', '2nd PC Coefficients over PCAdata dQdV 201 to 212');
-for j = 1:numCycles
+for j = 1:12
     subplot(3,4,j)
     for i = 1:numBat
     color_ind = batt_color_grade(i);
@@ -174,7 +225,7 @@ for j = 1:numCycles
     PC2 = coeff((j*1000 - 999):(j*1000),2)';
     plot(1:1000, PC1, 'Color', 'k', 'LineWidth', 1.5)
 end
-
+%}
 
 %{
 clear; close all; clc

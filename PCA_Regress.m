@@ -1,10 +1,13 @@
-clearvars -except batch; close all; clc
+function PCA_Regress()
+% clearvars -except batch batch_test batch_train held_out_unfinished; 
+close all; clc
 
-numBat = 46;
+%{
+numBat = numel(batch_train);
 numCycles = 12;
 forEvery = 1;
 PCAdata = [];
-startAt = 200;
+startAt = 50;
 
 for i = 1:numBat
     PCAdata_row = [];
@@ -35,13 +38,19 @@ end
 
 %% Perform PCA
 [coeff, score, latent, ~, explained, mu] = pca(PCAdata);
+%}
 
-X = ones(46,1);
-X = [X, score];
+X_ones = ones(numBat,1);
+X = [score(:,1), X_ones];
 
 [b,bint,r,rint,stats] = regress(bat_label, X);
 
-figure()
-plot(b)
+Y_pred = X * b;
 
-disp('stp')
+figure()
+plot(Y_pred, bat_label, 'o')
+hold on
+plot(linspace(500, 1100),linspace(500,1100), 'k')
+xlabel('Predicted Cycle Number')
+ylabel('Current Cycle Number')
+print(gcf,'PredCycle_CurrCycle','-dpng')
