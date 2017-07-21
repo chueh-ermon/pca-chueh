@@ -8,7 +8,7 @@ numBat = numel(batch_train);
 numCycles = 12;
 forEvery = 1;
 PCAdata = [];
-startAt = 25;
+startAt = 200;
 
 %% Generate data for PCA input
 for i = 1:numBat
@@ -48,17 +48,18 @@ end
 path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-images/dQdV_', string(startAt), '_', string(forEvery), '_', string(numCycles));
 cd (char(path))
 save(strcat('pcaResultsTest_', string(startAt), '_', string(forEvery), '_', string(numCycles)), 'coeff', 'score', 'latent', 'explained', 'mu')
-%{
+
 %% Plot percent variance explained
 plot(explained,'o-')
 ylabel('Percent Variance Explained')
 xlabel('PC Index')
 title('Percent Variance Explained')
 file_name = char(strcat('PerVariExpTest_', string(startAt), '_', string(forEvery), '_', string(numCycles)));
-set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
+%set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
+%{
 %% Plot score vs battery using batt_color_range
 figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index');
 for j = 1:size(score,2)
@@ -122,11 +123,11 @@ set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 file_name = char(strcat('ScorevsScore12Test_', string(startAt), '_', string(forEvery), '_', string(numCycles)));
 savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
-%}
+
 
 path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-images/PredvsObs');
 cd (char(path))
-
+%}
 %% PCA regression
 X_ones = ones(numBat,1);
 X = [score(:,1), X_ones];
@@ -135,7 +136,7 @@ X = [score(:,1), X_ones];
 
 Y_pred = X * b;
 
-%figure()
+figure()
 plot(Y_pred, bat_label, 'o')
 hold on
 plot(linspace(500, 1100),linspace(500,1100), 'k')
