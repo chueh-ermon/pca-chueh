@@ -5,20 +5,14 @@ close all; clc
 %load train_test_partition.mat
 
 numBat = numel(batch_train);
-numCycles = 10;
-forEvery = 1;
 PCAdata = [];
-startAt = 182;
+startAt = 100;
+less = 10;
 
 %% Generate data for PCA input
 for i = 1:numBat
-    PCAdata_row = [];
-    for j = 1:forEvery:numCycles
-        cycle = j+startAt;
-        PCAdata_row = [PCAdata_row, ...
-            batch_train(i).cycles(cycle).discharge_dQdVvsV.dQdV(1,:)];
-    end
-    PCAdata = vertcat(PCAdata, PCAdata_row);
+    PCAdata(i,:) = batch_train(i).cycles(startAt).discharge_dQdVvsV.dQdV(1,:) ...
+        - batch_train(i).cycles(less).discharge_dQdVvsV.dQdV(1,:);
 end
 
 PCAdata(isnan(PCAdata)) = 0;
@@ -46,18 +40,18 @@ end
 
 %% Perform PCA
 [coeff, score, latent, ~, explained, mu] = pca(PCAdata);
-% path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-images/dQdV_', string(startAt), '_', string(forEvery), '_', string(numCycles));
-% cd (char(path))
-% save(strcat('pcaResultsTest_', string(startAt), '_', string(forEvery), '_', string(numCycles)), 'coeff', 'score', 'latent', 'explained', 'mu')
+path = '/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-difference/batch1';
+cd (char(path))
+save(strcat('pcaResultsTest_', startAt, '-', less), 'coeff', 'score', 'latent', 'explained', 'mu')
 
-%{
+
 %% Plot percent variance explained
 plot(explained,'o-')
 ylabel('Percent Variance Explained')
 xlabel('PC Index')
 title('Percent Variance Explained')
-file_name = char(strcat('PerVariExpTest_', string(startAt), '_', ...
-    string(forEvery), '_', string(numCycles)));
+file_name = char(strcat('PerVariExpTest_', string(startAt), '-', ...
+    string(less)));
 %set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
@@ -66,7 +60,7 @@ print(gcf, file_name,'-dpng')
 %% Plot score vs battery using batt_color_range
 figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index');
 for j = 1:size(score,2)
-    subplot(5,6,j)
+    subplot(6,6,j)
     hold on
     for i = 1:numBat
         color_ind = batt_color_grade(i);
@@ -76,8 +70,7 @@ for j = 1:size(score,2)
     ylabel(['Score ', num2str(j)])
 end
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
-file_name = char(strcat('ScorevsBatteryTest_', string(startAt), '_', ...
-    string(forEvery), '_', string(numCycles)));
+file_name = char(strcat('ScorevsBatteryTest_', string(startAt), '-', string(less)));
 savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
@@ -95,8 +88,7 @@ for j = 1:12
     ylabel(['Score ', num2str(j)])
 end
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
-file_name = char(strcat('ScorevsBattery12Test_', string(startAt), ...
-    '_', string(forEvery), '_', string(numCycles)));
+file_name = char(strcat('ScorevsBattery12Test_', string(startAt), '-', string(less)));
 savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
@@ -109,8 +101,7 @@ for i = 1:numBat
 end
 title('First Principal Component Score')
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
-file_name = char(strcat('FirstPCScoreTest_', string(startAt), '_', ...
-    string(forEvery), '_', string(numCycles)));
+file_name = char(strcat('FirstPCScoreTest_', string(startAt), '-', string(less)));
 savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
@@ -128,13 +119,12 @@ for j = 1:12
     end
 end
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
-file_name = char(strcat('ScorevsScore12Test_', string(startAt), '_', ...
-    string(forEvery), '_', string(numCycles)));
+file_name = char(strcat('ScorevsScore12Test_', string(startAt), '-', string(less)));
 savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
-%}
 
-path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-images/PredvsObs');
+
+path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-difference/PredvsObs');
 cd (char(path))
 
 %% PCA regression
@@ -158,7 +148,7 @@ hold on
 plot(linspace(500, 1100),linspace(500,1100), 'k')
 xlabel('Predicted Cycle Number')
 ylabel('Current Cycle Number')
-title(['Cycle ' num2str(startAt+1), '-', num2str(startAt+numCycles)]) 
+title(['Cycle ' num2str(startAt), '-', num2str(less)]) 
 hold on
 
 %% Apply model to test data
@@ -166,14 +156,8 @@ numTestBat = numel(batch_test);
 color_test = colormap(autumn(numTestBat));
 PCAtest = [];
 for i = 1:numTestBat
-    PCAtest_row = [];
-    for j = 1:forEvery:numCycles
-        cycle = j+startAt;
-        PCAtest_row = [PCAtest_row, ...
-            batch_test(i).cycles(cycle).discharge_dQdVvsV.dQdV(1,:)];
-    end
-    centeredPCAtest = PCAtest_row - mu;
-    PCAtest = vertcat(PCAtest, centeredPCAtest);
+    PCAtest(i,:) = batch_test(i).cycles(startAt).discharge_dQdVvsV.dQdV(1,:) ...
+        - batch_test(i).cycles(less).discharge_dQdVvsV.dQdV(1,:);
 end
 scores = PCAtest * coeff(:,1);
 X_ones = ones(numTestBat,1);
@@ -201,8 +185,7 @@ for j = 1:numTestBat
 end
 legL = legend(policy_names,'Location','NortheastOutside');
 %legR = legend(test_names,'Location','NorthwestOutside');
-name = strcat('PredCycle_CurrCycle', string(startAt), '_', ...
-    string(forEvery), '_', string(numCycles));
+name = strcat('PredCycle_CurrCycle_b1_', string(startAt), '-', string(less));
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 print(gcf,char(name),'-dpng')
 
