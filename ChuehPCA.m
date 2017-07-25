@@ -5,10 +5,10 @@ close all; clc
 %load train_test_partition.mat
 
 numBat = numel(batch_train);
-numCycles = 10;
+numCycles = 12;
 forEvery = 1;
 PCAdata = [];
-startAt = 182;
+startAt = 520;
 
 %% Generate data for PCA input
 for i = 1:numBat
@@ -50,7 +50,8 @@ end
 % cd (char(path))
 % save(strcat('pcaResultsTest_', string(startAt), '_', string(forEvery), '_', string(numCycles)), 'coeff', 'score', 'latent', 'explained', 'mu')
 
-%{
+path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-images/PredvsObs');
+cd (char(path))
 %% Plot percent variance explained
 plot(explained,'o-')
 ylabel('Percent Variance Explained')
@@ -58,11 +59,11 @@ xlabel('PC Index')
 title('Percent Variance Explained')
 file_name = char(strcat('PerVariExpTest_', string(startAt), '_', ...
     string(forEvery), '_', string(numCycles)));
-%set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
+set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
-
+%{
 %% Plot score vs battery using batt_color_range
 figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index');
 for j = 1:size(score,2)
@@ -100,19 +101,19 @@ file_name = char(strcat('ScorevsBattery12Test_', string(startAt), ...
 savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
-%% Plot first principle component score using batt_color_range
-figure('NumberTitle', 'off', 'Name', 'First Principal Component Score');
-for i = 1:numBat
-    color_ind = batt_color_grade(i);
-    plot(i, score(i,1),'.','Color',CM(color_ind,:),'MarkerSize',16)
-    hold on
-end
-title('First Principal Component Score')
-set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
-file_name = char(strcat('FirstPCScoreTest_', string(startAt), '_', ...
-    string(forEvery), '_', string(numCycles)));
-savefig(gcf, file_name);
-print(gcf, file_name,'-dpng')
+% %% Plot first principle component score using batt_color_range
+% figure('NumberTitle', 'off', 'Name', 'First Principal Component Score');
+% for i = 1:numBat
+%     color_ind = batt_color_grade(i);
+%     plot(i, score(i,1),'.','Color',CM(color_ind,:),'MarkerSize',16)
+%     hold on
+% end
+% title('First Principal Component Score')
+% set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
+% file_name = char(strcat('FirstPCScoreTest_', string(startAt), '_', ...
+%     string(forEvery), '_', string(numCycles)));
+% savefig(gcf, file_name);
+% print(gcf, file_name,'-dpng')
 
 %% Plot score vs score for first 12 PCs
 figure()
@@ -134,8 +135,8 @@ savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 %}
 
-path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-images/PredvsObs');
-cd (char(path))
+% path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-images/PredvsObs');
+% cd (char(path))
 
 %% PCA regression
 color_train = colormap(winter(numBat));
@@ -147,6 +148,12 @@ X = [score(:,1), X_ones];
 [b,bint,r,rint,stats] = regress(bat_label, X);
 
 Y_pred = X * b;
+
+close
+
+per_error_train = abs((bat_label - Y_pred)./Y_pred);
+rmse_train = sqrt(mean(per_error_train .^2));
+disp(['RMSE Train: ', num2str(rmse_train)])
 
 figure()
 for i = 1:numBat
@@ -181,10 +188,15 @@ X_test = [scores,X_ones];
 
 bat_label_test = zeros(numTestBat,1);
 for j = 1:numTestBat
-    bat_label_test(j,1) = batch_test(j).last_cycle; % TODO: change to last cycle before degraded
+    bat_label_test(j,1) = batch_test(j).last_cycle;
 end
 
 Y_test_pred = X_test * b;
+
+per_error_test = abs((bat_label_test - Y_test_pred)./Y_test_pred);
+rmse_test = sqrt(mean(per_error_test .^2));
+disp(['RMSE Test: ', num2str(rmse_test)])
+
 for i = 1:numTestBat
     plot(Y_test_pred(i), bat_label_test(i), ...
         markers{mod(i,numel(markers))+1}, 'Color', color_test(i,:))
@@ -206,81 +218,37 @@ name = strcat('PredCycle_CurrCycle', string(startAt), '_', ...
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 print(gcf,char(name),'-dpng')
 
-close all
-%{
-%% Graph the first principle component on top of the PCAdata
+%% Plot residuals train
 figure()
-for i = 1:numBat
-    yyaxis left
-    color_ind = batt_color_grade(i);
-    plot(1:numCycles*1000, PCAdata(i,:), '-', 'Color', CM(color_ind,:))
-    hold on
-end
-ylabel('dQ/dV (Ahs/V)')
-yyaxis right
-PC1 = coeff(:,1)';
-plot(1:numCycles*1000, PC1, 'Color', 'k')
-ylabel('Principal Component 1 Coefficients')
-title('First Principal Component Coefficients over PCAdata')
+scatter(1:numBat, r, 'b')
+hold on
+refline(0,0)
+hold on
+xlabel('Battery')
+ylabel('Residual')
+ylim([-300 300])
+title(['Train Residuals for model based on cycles ', num2str(startAt+1), ...
+    '-', num2str(numCycles+startAt)])
+name = strcat('Residuals_', string(startAt), '_', ...
+    string(forEvery), '_', string(numCycles));
+%set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
+print(gcf,char(name),'-dpng')
 
+%% Plot residuals test
+r_test = bat_label_test - Y_test_pred;
 figure()
-for i = 1:numBat
-    yyaxis left
-    color_ind = batt_color_grade(i);
-    plot(1:numCycles*1000, PCAdata(i,:), '-', 'Color', CM(color_ind,:))
-    hold on
-end
-ylabel('dQ/dV (Ahs/V)')
-yyaxis right
-PC2 = coeff(:,2)';
-plot(1:numCycles*1000, PC2, 'Color', 'k')
-ylabel('Principal Component 2 Coefficients')
-title('Second Principal Component Coefficients over PCAdata')
+scatter(1:numTestBat, r_test, 'r')
+hold on
+refline(0,0)
+xlabel('Battery')
+ylabel('Residual')
+ylim([-300 300])
+title(['Test Residuals for model based on cycles ', num2str(startAt+1), ...
+    '-', num2str(numCycles+startAt)])
+name = strcat('TestResiduals_', string(startAt), '_', ...
+    string(forEvery), '_', string(numCycles));
+%set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
+print(gcf,char(name),'-dpng')
 
-figure()
-% PC1 = coeff(:,1)';
-% plot(1:numCycles*1000, PC1, 'Color', 'r')
-% hold on
-% PC2 = coeff(:,2)';
-% plot(1:numCycles*1000, PC2, 'Color', 'b')
-% legend('Principal Component 1', 'Principal Component 2')
-for j = 1:6
-    PC = coeff(:,j)';
-    plot(1:numCycles*1000, PC)
-    hold on
-end
-legend('PC 1', 'PC 2', 'PC 3', 'PC 4', 'PC 5', 'PC 6')%, 'PC 7', 'PC 8', 'PC 9', 'PC 10', 'PC 11', 'PC 12')
-
-figure('NumberTitle', 'off', 'Name', '1st PC Coefficients over PCAdata dQdV 201 to 212');
-for j = 1:12
-    subplot(3,4,j)
-    yyaxis left
-    for i = 1:numBat
-    color_ind = batt_color_grade(i);
-    plot(1:1000, PCAdata(i,(j*1000 - 999):(j*1000)), '-', 'Color', CM(color_ind,:))
-    hold on
-    end
-    xlabel(['Cycle', j])
-    ylabel('dQ/dV (Ahs/V)')
-    yyaxis right
-    ylabel('Principal Component 1 Coefficients')
-    PC1 = coeff((j*1000 - 999):(j*1000),1)';
-    plot(1:1000, PC1, 'Color', 'k', 'LineWidth', 1.5)
-end
-
-figure('NumberTitle', 'off', 'Name', '2nd PC Coefficients over PCAdata dQdV 201 to 212');
-for j = 1:12
-    subplot(3,4,j)
-    for i = 1:numBat
-    color_ind = batt_color_grade(i);
-    plot(1:1000, PCAdata(i,(j*1000 - 999):(j*1000)), 'Color', CM(color_ind,:))
-    hold on
-    end
-    xlabel(['Cycle', j])
-    ylabel('dQ/dV (Ahs/V)')
-    yyaxis right
-    ylabel('Principal Component 2 Coefficients')
-    PC2 = coeff((j*1000 - 999):(j*1000),2)';
-    plot(1:1000, PC1, 'Color', 'k', 'LineWidth', 1.5)
-end
-%}
+%% Output r^2 and percent error
+disp(['R^2: ', num2str(stats(1))])
