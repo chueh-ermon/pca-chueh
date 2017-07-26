@@ -1,14 +1,25 @@
+% Script that runs PCA on the batch 1 dQ/dV curves dataset, builds a 
+% predictive model from the results, and quantifies the fit of the model
+%
+% Zi Yang (zya@umich.edu) 07-2017
+%
+% Requires: files named 'train_test_partition_.mat'
+
 clearvars -except batch batch_test batch_train held_out_unfinished; 
 close all; clc
 
-%load 2017-05-12_batchdata_modified.mat
-%load train_test_partition.mat
+% this .mat file contains 3 variables: batch_test, batch_train, and
+% held_out_unfinished
+load train_test_partition.mat
 
 numBat = numel(batch_train);
+PCAdata = [];
+
+%% Variables to change to test different data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 numCycles = 12;
 forEvery = 1;
-PCAdata = [];
 startAt = 206;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Generate data for PCA input
 for i = 1:numBat
@@ -23,11 +34,6 @@ end
 
 PCAdata(isnan(PCAdata)) = 0;
 
-PCAdata_smooth = zeros(size(PCAdata));
-for i = 1:numBat
-    PCAdata_smooth(i,:) = smooth(PCAdata(i,:));
-end
-
 %% Create battery color grade for future plots
 bat_label = zeros(numBat,1);
 for j = 1:numBat
@@ -41,16 +47,22 @@ CM = colormap('jet');
 batt_color_grade = zeros(numBat, 1);
 
 for i = 1:numBat
-batt_color_grade(i) = ceil((bat_label(i) - min_cycle) ./ (max_cycle - min_cycle) * 64);
+batt_color_grade(i) = ceil((bat_label(i) - min_cycle) ./ ...
+    (max_cycle - min_cycle) * 64);
 end
 
 %% Perform PCA
 [coeff, score, latent, ~, explained, mu] = pca(PCAdata);
-% path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-images/dQdV_', string(startAt), '_', string(forEvery), '_', string(numCycles));
+% path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/', ...
+% 'pca-chueh-images/dQdV_', string(startAt), '_', string(forEvery), ...
+% '_', string(numCycles));
 % cd (char(path))
-% save(strcat('pcaResultsTest_', string(startAt), '_', string(forEvery), '_', string(numCycles)), 'coeff', 'score', 'latent', 'explained', 'mu')
+% save(strcat('pcaResultsTest_', string(startAt), '_', ...
+% string(forEvery), '_', string(numCycles)), 'coeff', 'score', ...
+% 'latent', 'explained', 'mu')
 
-path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-images/PredvsObs');
+path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/', ...
+    'pca-chueh-images/PredvsObs');
 cd (char(path))
 %% Plot percent variance explained
 plot(explained,'o-')
@@ -135,7 +147,8 @@ savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
 
-path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-images/PredvsObs');
+path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/', ...
+    'pca-chueh-images/PredvsObs');
 cd (char(path))
 
 %% PCA regression
@@ -225,8 +238,8 @@ hold on
 xlabel('Battery')
 ylabel('Residual')
 ylim([-300 300])
-title(['Train Residuals for model based on cycles ', num2str(startAt+1), ...
-    '-', num2str(numCycles+startAt)])
+title(['Train Residuals for model based on cycles ', ...
+    num2str(startAt+1), '-', num2str(numCycles+startAt)])
 name = strcat('Residuals_', string(startAt), '_', ...
     string(forEvery), '_', string(numCycles));
 %set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
