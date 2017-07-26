@@ -11,8 +11,8 @@ batch_num = 2;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Can uncomment the remaider of this line to keep variables %%%%%%%%%%%%%%
-clearvars -except batch_num % batch batch_test batch_train ...
-    %held_out_unfinished batch_outlier; 
+clearvars -except batch_num batch batch_test batch_train ...
+    held_out_unfinished batch_outlier; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 close all; clc
@@ -209,6 +209,7 @@ for i = 1:numBat
     hold on
 end
 hold on
+
 if batch_num == 1
     linmin = 500;
     linmax = 1100;
@@ -216,6 +217,7 @@ elseif batch_num == 2
     linmin = 300;
     linmax = 600;
 end
+
 plot(linspace(linmin, linmax),linspace(linmin,linmax), 'k')
 xlabel('Predicted Cycle Life')
 ylabel('Current Cycle Life')
@@ -223,14 +225,14 @@ title(['Predictive Model from Difference PCA (dQdV at ', ...
     num2str(startAt), ' - dQdV at ', num2str(less),')']) 
 hold on
 
-%% Apply model to test data
+%% Apply predictive model to test data
 numTestBat = numel(batch_test);
 color_test = colormap(autumn(numTestBat));
 PCAtest = [];
 for i = 1:numTestBat
     PCAtest(i,:) = ...
-        batch_test(i).cycles(startAt).discharge_dQdVvsV.dQdV(1,:) ...
-        - batch_test(i).cycles(less).discharge_dQdVvsV.dQdV(1,:);
+        (batch_test(i).cycles(startAt).discharge_dQdVvsV.dQdV(1,:) ...
+        - batch_test(i).cycles(less).discharge_dQdVvsV.dQdV(1,:)) - mu;
 end
 scores = PCAtest * coeff(:,1);
 X_ones = ones(numTestBat,1);
