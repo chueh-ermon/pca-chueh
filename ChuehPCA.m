@@ -149,8 +149,6 @@ X = [score(:,1), X_ones];
 
 Y_pred = X * b;
 
-close
-
 per_error_train = abs((bat_label - Y_pred)./Y_pred);
 rmse_train = sqrt(mean(per_error_train .^2));
 disp(['RMSE Train: ', num2str(rmse_train)])
