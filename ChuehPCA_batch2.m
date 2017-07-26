@@ -1,14 +1,14 @@
-clearvars -except batch batch_test batch_train held_out_unfinished; 
+clearvars -except batch batch_test batch_train batch_outlier; 
 close all; clc
 
 %load 2017-05-12_batchdata_modified.mat
-load train_test_partition_b2.mat
+%load train_test_partition_b2.mat
 
 numBat = numel(batch_train);
-numCycles = 2;
+numCycles = 10;
 forEvery = 1;
 PCAdata = [];
-startAt = 10;
+startAt = 210;
 
 %% Generate data for PCA input
 for i = 1:numBat
@@ -69,7 +69,7 @@ print(gcf, file_name,'-dpng')
 %% Plot score vs battery using batt_color_range
 figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index');
 for j = 1:size(score,2)
-    subplot(6,6,j)
+    subplot(4,8,j)
     hold on
     for i = 1:numBat
         color_ind = batt_color_grade(i);
@@ -103,6 +103,7 @@ file_name = char(strcat('ScorevsBattery12Test_B2_', string(startAt), ...
 savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
+%{
 %% Plot first principle component score using batt_color_range
 figure('NumberTitle', 'off', 'Name', 'First Principal Component Score');
 for i = 1:numBat
@@ -116,7 +117,7 @@ file_name = char(strcat('FirstPCScoreTest_B2_', string(startAt), '_', ...
     string(forEvery), '_', string(numCycles)));
 savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
-
+%}
 %% Plot score vs score for first 12 PCs
 figure()
 for j = 1:12
@@ -145,11 +146,15 @@ color_train = colormap(winter(numBat));
 markers = {'+','o','*','.','x','s','d','^','v','>','<','p','h'};
 
 X_ones = ones(numBat,1);
-X = [score(:,1), X_ones];
+X = [score(:,15), X_ones]; %% changed to score 15
 
 [b,bint,r,rint,stats] = regress(bat_label, X);
 
 Y_pred = X * b;
+
+per_error_train = abs((bat_label - Y_pred)./Y_pred);		
+rmse_train = sqrt(mean(per_error_train .^2));		
+disp(['RMSE Train: ', num2str(rmse_train)])
 
 figure()
 for i = 1:numBat
@@ -158,9 +163,9 @@ for i = 1:numBat
     hold on
 end
 hold on
-plot(linspace(100, 700),linspace(100,700), 'k')
-xlabel('Predicted Cycle Number')
-ylabel('Current Cycle Number')
+plot(linspace(300, 600),linspace(300,600), 'k')
+xlabel('Predicted Cycle Life')
+ylabel('Current Cycle Life')
 title(['Cycle ' num2str(startAt+1), '-', num2str(startAt+numCycles)]) 
 hold on
 
@@ -178,7 +183,7 @@ for i = 1:numTestBat
     centeredPCAtest = PCAtest_row - mu;
     PCAtest = vertcat(PCAtest, centeredPCAtest);
 end
-scores = PCAtest * coeff(:,1);
+scores = PCAtest * coeff(:,15); %% change to score 15
 X_ones = ones(numTestBat,1);
 X_test = [scores,X_ones];
 
@@ -188,6 +193,11 @@ for j = 1:numTestBat
 end
 
 Y_test_pred = X_test * b;
+
+per_error_test = abs((bat_label_test - Y_test_pred)./Y_test_pred);		
+rmse_test = sqrt(mean(per_error_test .^2));		
+disp(['RMSE Test: ', num2str(rmse_test)])
+
 for i = 1:numTestBat
     plot(Y_test_pred(i), bat_label_test(i), ...
         markers{mod(i,numel(markers))+1}, 'Color', color_test(i,:))
@@ -217,7 +227,7 @@ refline(0,0)
 hold on
 xlabel('Battery')
 ylabel('Residual')
-ylim([-300 300])
+ylim([-200 200])
 title(['Train Residuals for model based on cycles ', num2str(startAt+1), ...
     '-', num2str(numCycles+startAt)])
 name = strcat('Residuals_', string(startAt), '_', ...
@@ -233,7 +243,7 @@ hold on
 refline(0,0)
 xlabel('Battery')
 ylabel('Residual')
-ylim([-300 300])
+ylim([-200 200])
 title(['Test Residuals for model based on cycles ', num2str(startAt+1), ...
     '-', num2str(numCycles+startAt)])
 name = strcat('TestResiduals_', string(startAt), '_', ...
@@ -243,3 +253,4 @@ print(gcf,char(name),'-dpng')
 
 %% Output r^2 and percent error
 disp(['R^2: ', num2str(stats(1))])
+close all

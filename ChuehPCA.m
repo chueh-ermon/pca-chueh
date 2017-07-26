@@ -163,8 +163,8 @@ for i = 1:numBat
 end
 hold on
 plot(linspace(500, 1100),linspace(500,1100), 'k')
-xlabel('Predicted Cycle Number')
-ylabel('Current Cycle Number')
+xlabel('Predicted Cycle Life')
+ylabel('Current Cycle Life')
 title(['Cycle ' num2str(startAt+1), '-', num2str(startAt+numCycles)]) 
 hold on
 
