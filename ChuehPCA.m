@@ -8,7 +8,7 @@ numBat = numel(batch_train);
 numCycles = 12;
 forEvery = 1;
 PCAdata = [];
-startAt = 520;
+startAt = 206;
 
 %% Generate data for PCA input
 for i = 1:numBat
@@ -63,7 +63,7 @@ set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
-%{
+
 %% Plot score vs battery using batt_color_range
 figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index');
 for j = 1:size(score,2)
@@ -133,10 +133,10 @@ file_name = char(strcat('ScorevsScore12Test_', string(startAt), '_', ...
     string(forEvery), '_', string(numCycles)));
 savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
-%}
 
-% path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-images/PredvsObs');
-% cd (char(path))
+
+path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-images/PredvsObs');
+cd (char(path))
 
 %% PCA regression
 color_train = colormap(winter(numBat));
