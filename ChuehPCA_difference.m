@@ -19,12 +19,10 @@ close all; clc
 
 %% Can comment this code if variables are already loaded %%%%%%%%%%%%%%%%%%
 if batch_num == 1
-    clear
     load train_test_partition.mat
     % this .mat file contains 3 variables: batch_test, batch_train, and
     % held_out_unfinished
 elseif batch_num == 2
-    clear
     load train_test_partition_b2.mat
     % this .mat file contains 3 variables: batch_test, batch_train, and
     % batch_outliers
@@ -277,7 +275,6 @@ refline(0,0)
 hold on
 xlabel('Battery')
 ylabel('Residual')
-ylim([-300 300])
 title(['Train Residuals for model based dQ/dV difference cycles ', ...
     num2str(startAt), '-', num2str(less)])
 name = strcat('Residuals_', string(startAt), '-', string(less));
@@ -292,7 +289,6 @@ hold on
 refline(0,0)
 xlabel('Battery')
 ylabel('Residual')
-ylim([-300 300])
 title(['Test Residuals for model based dQ/dV difference cycles ', ...
     num2str(startAt), '-', num2str(less)])
 name = strcat('TestResiduals_', string(startAt), '-', string(less));
