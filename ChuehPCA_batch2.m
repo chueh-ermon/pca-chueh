@@ -1,3 +1,10 @@
+% Script that runs PCA on the batch 2 dQ/dV curves dataset, builds a 
+% predictive model from the results, and quantifies the fit of the model
+%
+% Zi Yang (zya@umich.edu) 07-2017
+%
+% Requires: files named 'train_test_partition_b2.mat'
+
 clearvars -except batch batch_test batch_train batch_outlier; 
 close all; clc
 
