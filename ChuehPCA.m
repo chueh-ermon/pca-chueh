@@ -43,6 +43,7 @@ end
 max_cycle = max(bat_label) + 1;
 min_cycle = min(bat_label) - 1;
 CM = colormap('jet');
+close
 
 batt_color_grade = zeros(numBat, 1);
 
@@ -55,7 +56,7 @@ end
 figure()
 for i = 1:numBat
     color_ind = batt_color_grade(i);
-    plot(1:numCells*1000, PCAdata(i,:), ...
+    plot(1:numCycles*1000, PCAdata(i,:), ...
         'Color', CM(color_ind,:))
     hold on
 end
@@ -70,18 +71,25 @@ title('PCAdata')
 
 %% Perform PCA
 [coeff, score, latent, ~, explained, mu] = pca(PCAdata);
-% path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/', ...
-% 'pca-chueh-images/dQdV_', string(startAt), '_', string(forEvery), ...
-% '_', string(numCycles));
-% cd (char(path))
-% save(strcat('pcaResultsTest_', string(startAt), '_', ...
-% string(forEvery), '_', string(numCycles)), 'coeff', 'score', ...
-% 'latent', 'explained', 'mu')
 
-path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/', ...
-    'pca-chueh-images/PredvsObs');
+%% Save PCA data in correct folder
+path = '/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-b1/';
 cd (char(path))
+
+new_dir = strcat('dQdV_', num2str(startAt), '_', ...
+    num2str(forEvery), '_', num2str(numCycles));
+folder_path = strcat(path, new_dir);
+
+if exist(new_dir, 'dir') == 0
+    mkdir(new_dir);
+end
+
+cd (folder_path)
+save(strcat('pcaResultsTest_', string(startAt), '_', string(forEvery), ...
+    '_', string(numCycles)), 'coeff', 'score', 'latent', 'explained', 'mu')
+
 %% Plot percent variance explained
+figure()
 plot(explained,'o-')
 ylabel('Percent Variance Explained')
 xlabel('PC Index')
@@ -89,7 +97,7 @@ title('Percent Variance Explained')
 file_name = char(strcat('PerVariExpTest_', string(startAt), '_', ...
     string(forEvery), '_', string(numCycles)));
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
-savefig(gcf, file_name);
+% savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
 
@@ -108,7 +116,7 @@ end
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 file_name = char(strcat('ScorevsBatteryTest_', string(startAt), '_', ...
     string(forEvery), '_', string(numCycles)));
-savefig(gcf, file_name);
+% savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
 %% Plot first 12 PC score vs battery using batt_color_range
@@ -127,7 +135,7 @@ end
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 file_name = char(strcat('ScorevsBattery12Test_', string(startAt), ...
     '_', string(forEvery), '_', string(numCycles)));
-savefig(gcf, file_name);
+% savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
 % %% Plot first principle component score using batt_color_range
@@ -141,7 +149,7 @@ print(gcf, file_name,'-dpng')
 % set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 % file_name = char(strcat('FirstPCScoreTest_', string(startAt), '_', ...
 %     string(forEvery), '_', string(numCycles)));
-% savefig(gcf, file_name);
+% % savefig(gcf, file_name);
 % print(gcf, file_name,'-dpng')
 
 %% Plot score vs score for first 12 PCs
@@ -160,13 +168,9 @@ end
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 file_name = char(strcat('ScorevsScore12Test_', string(startAt), '_', ...
     string(forEvery), '_', string(numCycles)));
-savefig(gcf, file_name);
+% savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
-
-path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/', ...
-    'pca-chueh-images/PredvsObs');
-cd (char(path))
 
 %% PCA regression
 color_train = colormap(winter(numBat));
@@ -247,11 +251,11 @@ print(gcf,char(name),'-dpng')
 
 %% Plot residuals train
 figure()
-scatter(1:numBat, r, 'b')
+scatter(Y_pred, r, 'b')
 hold on
 refline(0,0)
 hold on
-xlabel('Battery')
+xlabel('Predicted Cycle Life')
 ylabel('Residual')
 ylim([-300 300])
 title(['Train Residuals for model based on cycles ', ...
@@ -264,10 +268,10 @@ print(gcf,char(name),'-dpng')
 %% Plot residuals test
 r_test = bat_label_test - Y_test_pred;
 figure()
-scatter(1:numTestBat, r_test, 'r')
+scatter(Y_test_pred, r_test, 'r')
 hold on
 refline(0,0)
-xlabel('Battery')
+xlabel('Predicted Cycle Life')
 ylabel('Residual')
 ylim([-300 300])
 title(['Test Residuals for model based on cycles ', num2str(startAt+1), ...

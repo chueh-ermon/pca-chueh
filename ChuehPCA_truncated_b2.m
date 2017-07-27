@@ -10,10 +10,11 @@ close all;
 
 % this .mat file contains 3 variables: batch_test, batch_train, and
 % batch_outliers
-%load train_test_partition_b2.mat
+load train_test_partition_b2.mat
 
 numBat = numel(batch_train);
 PCAdata = [];
+batch_num = 2;
 
 
 %% Variables to change to test different data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -54,13 +55,22 @@ end
 
 %% Perform PCA
 [coeff, score, latent, ~, explained, mu] = pca(PCAdata);
-path = '/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-truncated-b2/'; %dQdV_', string(startAt), '_', string(forEvery), '_', string(numCycles));
+
+
+%% Save PCA data in correct folder
+path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/', ...
+    'pca-chueh-truncated/batch', num2str(batch_num));
 cd (char(path))
-mkdir(char(strcat('dQdV_', string(startAt), '_', string(forEvery), ...
-    '_', string(numCycles))));
-folder_path = strcat(path, 'dQdV_', string(startAt), '_', ...
-    string(forEvery), '_', string(numCycles));
-cd (char(folder_path))
+
+new_dir = strcat('truncated_dQdV_', num2str(startAt), '_', ...
+    num2str(forEvery), '_', num2str(numCycles));
+folder_path = strcat(path, new_dir);
+
+if exist(new_dir, 'dir') == 0
+    mkdir(new_dir);
+end
+
+cd (folder_path)
 save(strcat('pcaResultsTest_', string(startAt), '_', string(forEvery), ...
     '_', string(numCycles)), 'coeff', 'score', 'latent', 'explained', 'mu')
 
@@ -73,7 +83,7 @@ title('Percent Variance Explained')
 file_name = char(strcat('PerVariExpTest_B2_', string(startAt), '_', ...
     string(forEvery), '_', string(numCycles)));
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
-savefig(gcf, file_name);
+% savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
 %% Plot the PCAdata 
@@ -108,7 +118,7 @@ end
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 file_name = char(strcat('ScorevsBatteryTest_B2_', string(startAt), '_', ...
     string(forEvery), '_', string(numCycles)));
-savefig(gcf, file_name);
+% savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
 %% Plot first 12 PC score vs battery using batt_color_range
@@ -127,7 +137,7 @@ end
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 file_name = char(strcat('ScorevsBattery12Test_B2_', string(startAt), ...
     '_', string(forEvery), '_', string(numCycles)));
-savefig(gcf, file_name);
+% savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
 %{
@@ -142,7 +152,7 @@ title('First Principal Component Score')
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 file_name = char(strcat('FirstPCScoreTest_B2_', string(startAt), '_', ...
     string(forEvery), '_', string(numCycles)));
-savefig(gcf, file_name);
+% savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 %}
 %% Plot score vs score for first 12 PCs
@@ -161,13 +171,9 @@ end
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 file_name = char(strcat('ScorevsScore12Test_B2_', string(startAt), '_', ...
     string(forEvery), '_', string(numCycles)));
-savefig(gcf, file_name);
+% savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
-
-path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/', ...
-    'pca-chueh-truncated-b2/PredvsObs');
-cd (char(path))
 
 %% PCA regression
 color_train = colormap(winter(numBat));
@@ -249,11 +255,11 @@ print(gcf,char(name),'-dpng')
 
 %% Plot residuals train
 figure()
-scatter(1:numBat, r, 'b')
+scatter(Y_pred, r, 'b')
 hold on
 refline(0,0)
 hold on
-xlabel('Battery')
+xlabel('Predicted Cycle Life')
 ylabel('Residual')
 title(['Train Residuals for model based on cycles ', ...
     num2str(startAt+1), '-', num2str(numCycles+startAt)])
@@ -265,10 +271,10 @@ print(gcf,char(name),'-dpng')
 %% Plot residuals test
 r_test = bat_label_test - Y_test_pred;
 figure()
-scatter(1:numTestBat, r_test, 'r')
+scatter(Y_test_pred, r_test, 'r')
 hold on
 refline(0,0)
-xlabel('Battery')
+xlabel('Predicted Cycle Life')
 ylabel('Residual')
 title(['Test Residuals for model based on cycles ', num2str(startAt+1), ...
     '-', num2str(numCycles+startAt)])

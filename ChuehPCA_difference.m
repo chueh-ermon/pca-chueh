@@ -18,15 +18,15 @@ clearvars -except batch_num batch batch_test batch_train ...
 close all;
 
 %% Can comment this code if variables are already loaded %%%%%%%%%%%%%%%%%%
-% if batch_num == 1
-%     load train_test_partition.mat
-%     % this .mat file contains 3 variables: batch_test, batch_train, and
-%     % held_out_unfinished
-% elseif batch_num == 2
-%     load train_test_partition_b2.mat
-%     % this .mat file contains 3 variables: batch_test, batch_train, and
-%     % batch_outliers
-% end
+if batch_num == 1
+    load train_test_partition.mat
+    % this .mat file contains 3 variables: batch_test, batch_train, and
+    % held_out_unfinished
+elseif batch_num == 2
+    load train_test_partition_b2.mat
+    % this .mat file contains 3 variables: batch_test, batch_train, and
+    % batch_outliers
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Can change these variables to generate different models %%%%%%%%%%%%%%%% 
@@ -80,7 +80,7 @@ colormap('jet')
 if batch_num == 1
     tick_range = 524:55:1074;
 elseif batch_num == 2
-    tick_range = 326:22.7:553;
+    tick_range = 208:45.4:662; % These values will change as experiement runs
 end
 cb = colorbar('TickLabels', tick_range);
 ylabel(cb, 'Observed Cycle Life')
@@ -89,11 +89,23 @@ title('Difference in dQ/dV (cycle 200 - cycle 5)')
 
 %% Perform PCA
 [coeff, score, latent, ~, explained, mu] = pca(PCAdata);
+
+%% Save PCA data in correct folder
 path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/', ...
     'pca-chueh-difference/batch', num2str(batch_num));
 cd (char(path))
-save(strcat('pcaResultsTest_', startAt, '-', less), 'coeff', 'score', ...
-    'latent', 'explained', 'mu')
+
+new_dir = strcat('differenced_', num2str(startAt), '-', ...
+    num2str(less));
+folder_path = strcat(path, new_dir);
+
+if exist(new_dir, 'dir') == 0
+    mkdir(new_dir);
+end
+
+cd (folder_path)
+save(strcat('pcaResultsTest_', string(startAt), '_', string(forEvery), ...
+    '_', string(numCycles)), 'coeff', 'score', 'latent', 'explained', 'mu')
 
 
 %% Plot percent variance explained
@@ -105,7 +117,7 @@ title('Percent Variance Explained')
 file_name = char(strcat('PerVariExpTest_', string(startAt), '-', ...
     string(less)));
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
-savefig(gcf, file_name);
+% savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
 
@@ -124,7 +136,7 @@ end
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 file_name = char(strcat('ScorevsBatteryTest_', string(startAt), '-', ...
     string(less)));
-savefig(gcf, file_name);
+% savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
 %% Plot first 12 PC score vs battery using batt_color_range
@@ -143,7 +155,7 @@ end
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 file_name = char(strcat('ScorevsBattery12Test_', string(startAt), '-', ...
     string(less)));
-savefig(gcf, file_name);
+% savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
 %% Plot first principle component score using batt_color_range
@@ -160,7 +172,7 @@ cb = colorbar('TickLabels', [524:55:1074]);
 ylabel(cb, 'Observed Cycle Life')
 file_name = char(strcat('FirstPCScoreTest_', string(startAt), '-', ...
     string(less)));
-savefig(gcf, file_name);
+% savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
 %% Plot score vs score for first 12 PCs
@@ -179,20 +191,23 @@ end
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 file_name = char(strcat('ScorevsScore12Test_', string(startAt), '-', ...
     string(less)));
-savefig(gcf, file_name);
+% savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
-
-path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/', ...
-    'pca-chueh-difference/PredvsObs/batch', num2str(batch_num));
-cd (char(path))
 
 %% PCA regression
 color_train = colormap(winter(numBat));
 markers = {'+','o','*','.','x','s','d','^','v','>','<','p','h'};
 
 X_ones = ones(numBat,1);
-X = [score(:,1), X_ones];
+
+if batch_num == 1
+    pc_num = 1;
+elseif batch_num == 2
+    pc_num = 2;
+end
+    
+X = [score(:,pc_num), X_ones];
 
 [b,bint,r,rint,stats] = regress(bat_label, X);
 
@@ -214,8 +229,8 @@ if batch_num == 1
     linmin = 500;
     linmax = 1100;
 elseif batch_num == 2
-    linmin = 300;
-    linmax = 600;
+    linmin = 200;
+    linmax = 700;
 end
 
 plot(linspace(linmin, linmax),linspace(linmin,linmax), 'k')
@@ -234,7 +249,8 @@ for i = 1:numTestBat
         (batch_test(i).cycles(startAt).discharge_dQdVvsV.dQdV(1,:) ...
         - batch_test(i).cycles(less).discharge_dQdVvsV.dQdV(1,:)) - mu;
 end
-scores = PCAtest * coeff(:,1);
+
+scores = PCAtest * coeff(:,pc_num);
 X_ones = ones(numTestBat,1);
 X_test = [scores,X_ones];
 
@@ -264,18 +280,18 @@ for j = 1:numTestBat
     policy_names = [policy_names, batch_test(j).policy_readable];
 end
 legL = legend(policy_names,'Location','NortheastOutside');
-name = strcat('PredCycle_CurrCycle_b1_', string(startAt), '-', ...
+name = strcat('PredCycle_CurrCycle_', string(startAt), '-', ...
     string(less));
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 print(gcf,char(name),'-dpng')
 
 %% Plot residuals train
 figure()
-scatter(1:numBat, r, 'b')
+scatter(Y_pred, r, 'b')
 hold on
 refline(0,0)
 hold on
-xlabel('Battery')
+xlabel('Predicted Cycle Life')
 ylabel('Residual')
 title(['Train Residuals for model based dQ/dV difference cycles ', ...
     num2str(startAt), '-', num2str(less)])
@@ -286,10 +302,10 @@ print(gcf,char(name),'-dpng')
 %% Plot residuals test
 r_test = bat_label_test - Y_test_pred;
 figure()
-scatter(1:numTestBat, r_test, 'r')
+scatter(Y_test_pred, r_test, 'r')
 hold on
 refline(0,0)
-xlabel('Battery')
+xlabel('Predicted Cycle Life')
 ylabel('Residual')
 title(['Test Residuals for model based dQ/dV difference cycles ', ...
     num2str(startAt), '-', num2str(less)])
