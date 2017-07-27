@@ -15,18 +15,18 @@ clearvars -except batch_num batch batch_test batch_train ...
     held_out_unfinished batch_outlier; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-close all; clc
+close all;
 
 %% Can comment this code if variables are already loaded %%%%%%%%%%%%%%%%%%
-if batch_num == 1
-    load train_test_partition.mat
-    % this .mat file contains 3 variables: batch_test, batch_train, and
-    % held_out_unfinished
-elseif batch_num == 2
-    load train_test_partition_b2.mat
-    % this .mat file contains 3 variables: batch_test, batch_train, and
-    % batch_outliers
-end
+% if batch_num == 1
+%     load train_test_partition.mat
+%     % this .mat file contains 3 variables: batch_test, batch_train, and
+%     % held_out_unfinished
+% elseif batch_num == 2
+%     load train_test_partition_b2.mat
+%     % this .mat file contains 3 variables: batch_test, batch_train, and
+%     % batch_outliers
+% end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Can change these variables to generate different models %%%%%%%%%%%%%%%% 
@@ -112,7 +112,7 @@ print(gcf, file_name,'-dpng')
 %% Plot score vs battery using batt_color_range
 figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index');
 for j = 1:size(score,2)
-    subplot(4,8,j)
+    subplot(6,6,j)
     hold on
     for i = 1:numBat
         color_ind = batt_color_grade(i);
@@ -198,8 +198,8 @@ X = [score(:,1), X_ones];
 
 Y_pred = X * b;
 
-per_error_train = abs((bat_label - Y_pred)./Y_pred);
-rmse_train = sqrt(mean(per_error_train .^2));
+rmse_train = sqrt(mean((bat_label - Y_pred) .^2));
+
 disp(['RMSE Train: ', num2str(rmse_train)])
 
 figure()
@@ -245,8 +245,8 @@ end
 
 Y_test_pred = X_test * b;
 
-per_error_test = abs((bat_label_test - Y_test_pred)./Y_test_pred);
-rmse_test = sqrt(mean(per_error_test .^2));
+rmse_test = sqrt(mean((bat_label_test - Y_test_pred) .^2));
+
 disp(['RMSE Test: ', num2str(rmse_test)])
 
 for i = 1:numTestBat

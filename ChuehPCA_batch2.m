@@ -6,11 +6,11 @@
 % Requires: files named 'train_test_partition_b2.mat'
 
 clearvars -except batch batch_test batch_train batch_outlier; 
-close all; clc
+close all;
 
 % this .mat file contains 3 variables: batch_test, batch_train, and
 % batch_outliers
-load train_test_partition_b2.mat
+%load train_test_partition_b2.mat
 
 numBat = numel(batch_train);
 PCAdata = [];
@@ -19,7 +19,7 @@ PCAdata = [];
 %% Variables to change to test different data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 numCycles = 10;
 forEvery = 1;
-startAt = 210;
+startAt = 180;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Generate data for PCA input
@@ -72,15 +72,31 @@ xlabel('PC Index')
 title('Percent Variance Explained')
 file_name = char(strcat('PerVariExpTest_B2_', string(startAt), '_', ...
     string(forEvery), '_', string(numCycles)));
-%set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
+set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
 savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
 
+%% Plot the PCAdata 
+figure()
+for i = 1:numBat
+    color_ind = batt_color_grade(i);
+    plot(1:numCycles*1000, PCAdata(i,:), ...
+        'Color', CM(color_ind,:))
+    hold on
+end
+xlabel('PCAdata Index')
+ylabel('dQ/dV (Ahs/V)')
+colormap('jet')
+tick_range = 326:22.7:553;
+cb = colorbar('TickLabels', tick_range);
+ylabel(cb, 'Observed Cycle Life')
+set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
+title('PCAdata ')
 
 %% Plot score vs battery using batt_color_range
 figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index');
 for j = 1:size(score,2)
-    subplot(4,8,j)
+    subplot(6,6,j)
     hold on
     for i = 1:numBat
         color_ind = batt_color_grade(i);
@@ -164,8 +180,8 @@ X = [score(:,15), X_ones]; %% changed to score 15
 
 Y_pred = X * b;
 
-per_error_train = abs((bat_label - Y_pred)./Y_pred);		
-rmse_train = sqrt(mean(per_error_train .^2));		
+rmse_train = sqrt(mean((bat_label - Y_pred) .^2));
+
 disp(['RMSE Train: ', num2str(rmse_train)])
 
 figure()
@@ -206,8 +222,8 @@ end
 
 Y_test_pred = X_test * b;
 
-per_error_test = abs((bat_label_test - Y_test_pred)./Y_test_pred);		
-rmse_test = sqrt(mean(per_error_test .^2));		
+rmse_test = sqrt(mean((bat_label_test - Y_test_pred) .^2));
+
 disp(['RMSE Test: ', num2str(rmse_test)])
 
 for i = 1:numTestBat
@@ -239,7 +255,6 @@ refline(0,0)
 hold on
 xlabel('Battery')
 ylabel('Residual')
-ylim([-200 200])
 title(['Train Residuals for model based on cycles ', ...
     num2str(startAt+1), '-', num2str(numCycles+startAt)])
 name = strcat('Residuals_', string(startAt), '_', ...
@@ -255,7 +270,6 @@ hold on
 refline(0,0)
 xlabel('Battery')
 ylabel('Residual')
-ylim([-200 200])
 title(['Test Residuals for model based on cycles ', num2str(startAt+1), ...
     '-', num2str(numCycles+startAt)])
 name = strcat('TestResiduals_', string(startAt), '_', ...
