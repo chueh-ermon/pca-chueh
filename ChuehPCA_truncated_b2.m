@@ -59,7 +59,7 @@ end
 
 %% Save PCA data in correct folder
 path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/', ...
-    'pca-chueh-truncated/batch', num2str(batch_num));
+    'pca-chueh-truncated/batch', num2str(batch_num), '/');
 cd (char(path))
 
 new_dir = strcat('truncated_dQdV_', num2str(startAt), '_', ...
