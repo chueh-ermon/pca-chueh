@@ -5,40 +5,55 @@
 %
 % Requires: files named 'train_test_partition_.mat'
 
-clearvars -except batch batch_test batch_train held_out_unfinished; 
+clearvars -except batch1 batch2 batch2_heldout
+%batch_test batch_train held_out_unfinished; 
 close all;
 
 % this .mat file contains 3 variables: batch_test, batch_train, and
 % held_out_unfinished
-load train_test_partition.mat
-
-numBat = numel(batch_train);
-PCAdata = [];
+% load train_test_partition.mat
 
 %% Variables to change to test different data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-numCycles = 12;
+numCycles = 10;
 forEvery = 1;
-startAt = 206;
+startAt = 150;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+numBat = numel(batch1);
+PCAdata = zeros(numBat - floor(numBat/4), numCycles*1000);
+
+num_test = 0;
 %% Generate data for PCA input
 for i = 1:numBat
-    PCAdata_row = [];
-    for j = 1:forEvery:numCycles
-        cycle = j+startAt;
-        PCAdata_row = [PCAdata_row, ...
-            batch_train(i).cycles(cycle).discharge_dQdVvsV.dQdV(1,:)];
+    if mod(i,4) ~= 0
+        PCAdata_row = zeros(1, numCycles*1000);
+        for j = 1:forEvery:numCycles
+            cycle = j+startAt;
+            PCAdata_row(1,((j-1)*1000+1:(j)*1000)) = batch1(i).cycles(cycle).discharge_dQdVvsV.dQdV(1,:);
+        end
+        PCAdata(i - num_test,:) = PCAdata_row;
+    else
+        num_test = num_test + 1;
     end
-    PCAdata = vertcat(PCAdata, PCAdata_row);
 end
 
 PCAdata(isnan(PCAdata)) = 0;
 
 %% Create battery color grade for future plots
 bat_label = zeros(numBat,1);
+bat_label_train = zeros(numBat-num_test,1);
+bat_label_test = [];
+num_test = 0;
 for j = 1:numBat
-    bat_label(j,1) = batch_train(j).last_cycle;
+    bat_label(j,1) = batch1(j).last_cycle;
+    if mod(j,4) ~= 0
+        bat_label_train(j-num_test,1) = batch1(j).last_cycle;
+    else
+        bat_label_test = [bat_label_test, batch1(j).last_cycle];
+        num_test = num_test + 1;
+    end
 end
+bat_label_test = bat_label_test';
 
 max_cycle = max(bat_label) + 1;
 min_cycle = min(bat_label) - 1;
@@ -52,22 +67,29 @@ batt_color_grade(i) = ceil((bat_label(i) - min_cycle) ./ ...
     (max_cycle - min_cycle) * 64);
 end
 
-%% Plot the PCAdata 
-figure()
+%% Plot the PCAdata
+num_test = 0;
+figure ()
 for i = 1:numBat
-    color_ind = batt_color_grade(i);
-    plot(1:numCycles*1000, PCAdata(i,:), ...
+    if mod(i,4) ~= 0
+        color_ind = batt_color_grade(i);
+        plot(1:1000*numCycles, PCAdata((i-num_test),:), ...
         'Color', CM(color_ind,:))
-    hold on
+        hold on
+    else
+        num_test = num_test + 1;
+    end
+    
 end
-xlabel('PCAdata Index')
+xlabel('Voltage (Ah)')
 ylabel('dQ/dV (Ahs/V)')
 colormap('jet')
-tick_range = 524:55:1074;
+
+tick_range = min_cycle:((max_cycle - min_cycle)/10):max_cycle;
 cb = colorbar('TickLabels', tick_range);
 ylabel(cb, 'Observed Cycle Life')
-set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
-title('PCAdata')
+set(gcf, 'Position', get(0,'Screensize'));
+
 
 %% Perform PCA
 [coeff, score, latent, ~, explained, mu] = pca(PCAdata);
@@ -104,13 +126,18 @@ print(gcf, file_name,'-dpng')
 %% Plot score vs battery using batt_color_range
 figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index');
 for j = 1:size(score,2)
-    subplot(5,6,j)
+    num_test = 0;
+    subplot(6,6,j)
     hold on
     for i = 1:numBat
-        color_ind = batt_color_grade(i);
-        plot(i, score(i,j),'.','Color',CM(color_ind,:),'MarkerSize',16)
+        if mod(i,4) ~= 0
+            color_ind = batt_color_grade(i);
+            plot(bat_label(i), score(i-num_test,j),'.','Color',CM(color_ind,:),'MarkerSize',16)
+        else
+            num_test = num_test + 1;
+        end
     end
-    xlabel('Battery Index')
+    xlabel('Battery Cycle Life')
     ylabel(['Score ', num2str(j)])
 end
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
@@ -123,13 +150,18 @@ print(gcf, file_name,'-dpng')
 figure('NumberTitle', 'off', 'Name', ...
     'Score vs Battery Index (first 12 PCs)');
 for j = 1:12
+    num_test = 0;
     subplot(3,4,j)
     hold on
     for i = 1:numBat
-        color_ind = batt_color_grade(i);
-        plot(i, score(i,j),'.','Color',CM(color_ind,:),'MarkerSize',16)
+        if mod(i,4) ~= 0
+            color_ind = batt_color_grade(i);
+            plot(bat_label(i), score(i-num_test,j),'.','Color',CM(color_ind,:),'MarkerSize',16)
+        else
+            num_test = num_test + 1;
+        end
     end
-    xlabel('Battery Index')
+    xlabel('Battery Cycle Life')
     ylabel(['Score ', num2str(j)])
 end
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
@@ -157,12 +189,17 @@ figure()
 for j = 1:12
     subplot(3,4,j)
     hold on
+    num_test = 0;
     for i = 1:numBat
-        color_ind = batt_color_grade(i);
-        plot(score(i,j),score(i,j+1),'.','Color',CM(color_ind,:), ...
-            'MarkerSize',16)
-        xlabel(['Score ',num2str(j)])
-        ylabel(['Score ',num2str(j+1)])
+        if mod(i,4) ~= 0
+            color_ind = batt_color_grade(i);
+            plot(score(i-num_test,j),score(i-num_test,j+1),'.','Color',CM(color_ind,:), ...
+                'MarkerSize',16)
+            xlabel(['Score ',num2str(j)])
+            ylabel(['Score ',num2str(j+1)])
+        else
+            num_test = num_test + 1;
+        end
     end
 end
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
@@ -173,55 +210,54 @@ print(gcf, file_name,'-dpng')
 
 
 %% PCA regression
-color_train = colormap(winter(numBat));
+color_train = colormap(winter(numBat - num_test));
 markers = {'+','o','*','.','x','s','d','^','v','>','<','p','h'};
 
-X_ones = ones(numBat,1);
+X_ones = ones(numBat - num_test,1);
 X = [score(:,1), X_ones];
 
-[b,bint,r,rint,stats] = regress(bat_label, X);
+[b,bint,r,rint,stats] = regress(bat_label_train, X);
 
 Y_pred = X * b;
 
-rmse_train = sqrt(mean((bat_label - Y_pred) .^2));
+rmse_train = sqrt(mean((bat_label_train - Y_pred) .^2));
 
 disp(['RMSE Train: ', num2str(rmse_train)])
 
+num_test = 0;
 figure()
 for i = 1:numBat
-    plot(Y_pred(i), bat_label(i), markers{mod(i,numel(markers))+1}, ...
-        'Color', color_train(i,:))
+    if mod(i, 4) ~= 0
+        plot(Y_pred(i-num_test), bat_label(i), markers{mod(i-num_test,numel(markers))+1}, ...
+        'Color', color_train(i-num_test,:))
     hold on
+    else
+        num_test = num_test + 1;
+    end
 end
 hold on
-plot(linspace(500, 1100),linspace(500,1100), 'k')
+plot(linspace(200, 2000),linspace(200,2000), 'k')
 xlabel('Predicted Cycle Life')
 ylabel('Current Cycle Life')
 title(['Cycle ' num2str(startAt+1), '-', num2str(startAt+numCycles)]) 
 hold on
 
 %% Apply model to test data
-numTestBat = numel(batch_test);
+numTestBat = num_test;
 color_test = colormap(autumn(numTestBat));
-PCAtest = [];
+PCAtest = zeros(numTestBat, 1000*numCycles);
 for i = 1:numTestBat
-    PCAtest_row = [];
+    PCAtest_row = zeros(1,1000*numCycles);
     for j = 1:forEvery:numCycles
         cycle = j+startAt;
-        PCAtest_row = [PCAtest_row, ...
-            batch_test(i).cycles(cycle).discharge_dQdVvsV.dQdV(1,:)];
+        PCAtest_row(1,(j-1)*1000+1:(j)*1000) = batch1(i*4).cycles(cycle).discharge_dQdVvsV.dQdV(1,:);
     end
     centeredPCAtest = PCAtest_row - mu;
-    PCAtest = vertcat(PCAtest, centeredPCAtest);
+    PCAtest(i,:) = centeredPCAtest;
 end
-scores = PCAtest * coeff(:,1);
+test_score = PCAtest * coeff(:,1);
 X_ones = ones(numTestBat,1);
-X_test = [scores,X_ones];
-
-bat_label_test = zeros(numTestBat,1);
-for j = 1:numTestBat
-    bat_label_test(j,1) = batch_test(j).last_cycle;
-end
+X_test = [test_score,X_ones];
 
 Y_test_pred = X_test * b;
 
@@ -229,18 +265,23 @@ rmse_test = sqrt(mean((bat_label_test - Y_test_pred) .^2));
 disp(['RMSE Test: ', num2str(rmse_test)])
 
 for i = 1:numTestBat
-    plot(Y_test_pred(i), bat_label_test(i), ...
+    plot(Y_test_pred(i), bat_label(i*4), ...
         markers{mod(i,numel(markers))+1}, 'Color', color_test(i,:))
     hold on
 end
 
+num_test = 0;
 policy_names = {};
 for j = 1:numBat
-    policy_names = [policy_names, batch_train(j).policy_readable];
+    if mod(j,4) ~= 0
+        policy_names = [policy_names,batch1(j-num_test).policy_readable];
+    else
+        num_test = num_test + 1;
+    end
 end
-policy_names = [policy_names, 'Test Policies Below'];
-for j = 1:numTestBat
-    policy_names = [policy_names, batch_test(j).policy_readable];
+policy_names = [policy_names,'Test Policies Below'];
+for i = 1:numTestBat
+    policy_names = [policy_names,batch1(i*4).policy_readable];
 end
 legL = legend(policy_names,'Location','NortheastOutside');
 %legR = legend(test_names,'Location','NorthwestOutside');
@@ -283,3 +324,41 @@ print(gcf,char(name),'-dpng')
 
 %% Output r^2 and percent error
 disp(['R^2: ', num2str(stats(1))])
+
+
+%% Apply this model to Batch2
+b2_numBat = numel(batch2);
+b2_PCAdata = zeros(b2_numBat, 1000*numCycles);
+for i = 1:b2_numBat
+    PCAdata_row = zeros(1, numCycles*1000);
+    for j = 1:forEvery:numCycles
+        cycle = j+startAt;
+        PCAdata_row(1,((j-1)*1000+1:(j)*1000)) = ...
+            batch2(i).cycles(cycle).discharge_dQdVvsV.dQdV(1,:);
+    end
+    PCAdata_row = PCAdata_row - mu;
+    b2_PCAdata(i,:) = PCAdata_row;
+end
+
+b2_scores = b2_PCAdata * coeff(:,1);
+X_ones = ones(b2_numBat, 1);
+b2_X = [b2_scores,X_ones];
+b2_Y = b2_X * b;
+
+b2_bat_label = zeros(b2_numBat, 1);
+for i = 1:b2_numBat
+    b2_bat_label(i,1) = batch2(i).last_cycle;
+end
+
+figure()
+scatter(b2_Y, b2_bat_label)
+hold on
+plot(linspace(-400, 1000),linspace(-400,1000), 'k')
+set(gcf, 'Position', get(0,'Screensize'));
+xlabel('Predicted Cycle Life')
+ylabel('Observed Cycle Life')
+
+b2_policy_names = [];
+for i = 1:b2_numBat
+    b2_policy_names = [b2_policy_names, batch2(i).policy_readable];
+end

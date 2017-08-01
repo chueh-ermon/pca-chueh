@@ -10,17 +10,36 @@ close all;
 
 % this .mat file contains 3 variables: batch_test, batch_train, and
 % batch_outliers
-load train_test_partition_b2.mat
+%% Edit this to change which batch to use %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+batch_num = 1;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Can uncomment the remaider of this line to keep variables %%%%%%%%%%%%%%
+clearvars -except batch_num batch batch_test batch_train ...
+    held_out_unfinished batch_outlier; 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+close all;
+
+%% Can comment this code if variables are already loaded %%%%%%%%%%%%%%%%%%
+% if batch_num == 1
+%     load train_test_partition.mat
+%     % this .mat file contains 3 variables: batch_test, batch_train, and
+%     % held_out_unfinished
+% elseif batch_num == 2
+%     load train_test_partition_b2.mat
+%     % this .mat file contains 3 variables: batch_test, batch_train, and
+%     % batch_outliers
+% end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 numBat = numel(batch_train);
 PCAdata = [];
-batch_num = 2;
-
 
 %% Variables to change to test different data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-numCycles = 10;
+numCycles = 12;
 forEvery = 1;
-startAt = 180;
+startAt = 206;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Generate data for PCA input
@@ -29,7 +48,7 @@ for i = 1:numBat
     for j = 1:forEvery:numCycles
         cycle = j+startAt;
         PCAdata_row = [PCAdata_row, ...
-            batch_train(i).cycles(cycle).discharge_dQdVvsV.dQdV(1,100:700)];
+            batch_train(i).cycles(cycle).discharge_dQdVvsV.dQdV(1,101:700)];
     end
     PCAdata = vertcat(PCAdata, PCAdata_row);
 end
@@ -90,14 +109,18 @@ print(gcf, file_name,'-dpng')
 figure()
 for i = 1:numBat
     color_ind = batt_color_grade(i);
-    plot(1:numCycles*601, PCAdata(i,:), ...
+    plot(1:numCycles*600, PCAdata(i,:), ...
         'Color', CM(color_ind,:))
     hold on
 end
 xlabel('PCAdata Index')
 ylabel('dQ/dV (Ahs/V)')
 colormap('jet')
-tick_range = 326:22.7:553;
+if batch_num == 1
+    tick_range = 524:55:1074;
+elseif batch_num == 2
+    tick_range = 208:45.4:662; % These values will change as experiement runs
+end
 cb = colorbar('TickLabels', tick_range);
 ylabel(cb, 'Observed Cycle Life')
 set(gcf, 'Position', get(0,'Screensize')); % Maximize figure.
@@ -106,7 +129,7 @@ title('PCAdata ')
 %% Plot score vs battery using batt_color_range
 figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index');
 for j = 1:size(score,2)
-    subplot(6,6,j)
+    subplot(5,6,j)
     hold on
     for i = 1:numBat
         color_ind = batt_color_grade(i);
@@ -197,7 +220,7 @@ for i = 1:numBat
     hold on
 end
 hold on
-plot(linspace(300, 600),linspace(300,600), 'k')
+plot(linspace(500, 1100),linspace(500,1100), 'k')
 xlabel('Predicted Cycle Life')
 ylabel('Current Cycle Life')
 title(['Cycle ' num2str(startAt+1), '-', num2str(startAt+numCycles)]) 
@@ -212,7 +235,7 @@ for i = 1:numTestBat
     for j = 1:forEvery:numCycles
         cycle = j+startAt;
         PCAtest_row = [PCAtest_row, ...
-            batch_test(i).cycles(cycle).discharge_dQdVvsV.dQdV(1,100:700)];
+            batch_test(i).cycles(cycle).discharge_dQdVvsV.dQdV(1,101:700)];
     end
     centeredPCAtest = PCAtest_row - mu;
     PCAtest = vertcat(PCAtest, centeredPCAtest);
@@ -285,4 +308,3 @@ print(gcf,char(name),'-dpng')
 
 %% Output r^2 and percent error
 disp(['R^2: ', num2str(stats(1))])
-close all

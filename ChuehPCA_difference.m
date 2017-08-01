@@ -7,7 +7,7 @@
 % 'train_test_partition_b2.mat'
 
 %% Edit this to change which batch to use %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-batch_num = 2;
+batch_num = 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Can uncomment the remaider of this line to keep variables %%%%%%%%%%%%%%
@@ -18,15 +18,15 @@ clearvars -except batch_num batch batch_test batch_train ...
 close all;
 
 %% Can comment this code if variables are already loaded %%%%%%%%%%%%%%%%%%
-if batch_num == 1
-    load train_test_partition.mat
-    % this .mat file contains 3 variables: batch_test, batch_train, and
-    % held_out_unfinished
-elseif batch_num == 2
-    load train_test_partition_b2.mat
-    % this .mat file contains 3 variables: batch_test, batch_train, and
-    % batch_outliers
-end
+% if batch_num == 1
+%     load train_test_partition.mat
+%     % this .mat file contains 3 variables: batch_test, batch_train, and
+%     % held_out_unfinished
+% elseif batch_num == 2
+%     load train_test_partition_b2.mat
+%     % this .mat file contains 3 variables: batch_test, batch_train, and
+%     % batch_outliers
+% end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Can change these variables to generate different models %%%%%%%%%%%%%%%% 
@@ -92,7 +92,7 @@ title('Difference in dQ/dV (cycle 200 - cycle 5)')
 
 %% Save PCA data in correct folder
 path = strcat('/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/', ...
-    'pca-chueh-difference/batch', num2str(batch_num));
+    'pca-chueh-difference/batch', num2str(batch_num), '/');
 cd (char(path))
 
 new_dir = strcat('differenced_', num2str(startAt), '-', ...
@@ -104,8 +104,8 @@ if exist(new_dir, 'dir') == 0
 end
 
 cd (folder_path)
-save(strcat('pcaResultsTest_', string(startAt), '_', string(forEvery), ...
-    '_', string(numCycles)), 'coeff', 'score', 'latent', 'explained', 'mu')
+save(strcat('pcaResultsTest_', num2str(startAt), '-', num2str(less)), ...
+    'coeff', 'score', 'latent', 'explained', 'mu')
 
 
 %% Plot percent variance explained
@@ -124,7 +124,12 @@ print(gcf, file_name,'-dpng')
 %% Plot score vs battery using batt_color_range
 figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index');
 for j = 1:size(score,2)
-    subplot(6,6,j)
+    if batch_num == 1
+        x = 5;
+    elseif batch_num == 2
+        x = 6;
+    end
+    subplot(x,6,j)
     hold on
     for i = 1:numBat
         color_ind = batt_color_grade(i);

@@ -10,7 +10,7 @@ close all;
 
 % this .mat file contains 3 variables: batch_test, batch_train, and
 % batch_outliers
-load train_test_partition_b2.mat
+% load train_test_partition_b2.mat
 
 numBat = numel(batch_train);
 PCAdata = [];
@@ -19,7 +19,7 @@ PCAdata = [];
 %% Variables to change to test different data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 numCycles = 10;
 forEvery = 1;
-startAt = 190;
+startAt = 180;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Generate data for PCA input
