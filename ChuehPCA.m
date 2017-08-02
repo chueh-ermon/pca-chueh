@@ -3,15 +3,14 @@
 %
 % Zi Yang (zya@umich.edu) 07-2017
 %
-% Requires: files named 'train_test_partition_.mat'
+% Requires: files named 'b1_b2_batchdata.mat'
 
-clearvars -except batch1 batch2 batch2_heldout
-%batch_test batch_train held_out_unfinished; 
+clearvars -except batch1 batch2 batch2_heldout batch1_heldout
 close all;
 
-% this .mat file contains 3 variables: batch_test, batch_train, and
-% held_out_unfinished
-% load train_test_partition.mat
+% this .mat file contains 3 variables:
+% batch1, batch2, batch1_heldout, batch2_heldout
+% load b1_b2_batchdata.mat
 
 %% Variables to change to test different data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 numCycles = 10;
@@ -67,32 +66,10 @@ batt_color_grade(i) = ceil((bat_label(i) - min_cycle) ./ ...
     (max_cycle - min_cycle) * 64);
 end
 
-%% Plot the PCAdata
-num_test = 0;
-figure ()
-for i = 1:numBat
-    if mod(i,4) ~= 0
-        color_ind = batt_color_grade(i);
-        plot(1:1000*numCycles, PCAdata((i-num_test),:), ...
-        'Color', CM(color_ind,:))
-        hold on
-    else
-        num_test = num_test + 1;
-    end
-    
-end
-xlabel('Voltage (Ah)')
-ylabel('dQ/dV (Ahs/V)')
-colormap('jet')
-
-tick_range = min_cycle:((max_cycle - min_cycle)/10):max_cycle;
-cb = colorbar('TickLabels', tick_range);
-ylabel(cb, 'Observed Cycle Life')
-set(gcf, 'Position', get(0,'Screensize'));
-
 
 %% Perform PCA
 [coeff, score, latent, ~, explained, mu] = pca(PCAdata);
+
 
 %% Save PCA data in correct folder
 path = '/Users/ziyang/Desktop/2017_Chueh_Ermon_Research/pca-chueh-b1/';
@@ -110,6 +87,49 @@ cd (folder_path)
 save(strcat('pcaResultsTest_', string(startAt), '_', string(forEvery), ...
     '_', string(numCycles)), 'coeff', 'score', 'latent', 'explained', 'mu')
 
+%% Plot the PCAdata
+num_test = 0;
+figure ()
+subplot(2,1,1)
+% yyaxis left
+for i = 1:numBat
+    if mod(i,4) ~= 0
+        color_ind = batt_color_grade(i);
+        plot(1:1000*numCycles, PCAdata((i-num_test),:) - mu, ... %% changed
+        'Color', CM(color_ind,:))
+        hold on
+    else
+        num_test = num_test + 1;
+    end
+    
+end
+
+x_names = zeros(numCycles*numel(batch1(1).cycles(151).discharge_dQdVvsV.V),1); % = batch1(1).cycles(151).discharge_dQdVvsV.V;
+for i = 1:numCycles
+    x_names((i-1)*1000+1:i*1000,1) = batch1(1).cycles(151).discharge_dQdVvsV.V;
+end
+
+set(gca, 'xtick', [1:1000], 'xticklabel', x_names)
+
+xlabel('PCAdata Index')
+ylabel('dQ/dV (Ahs/V)')
+title('PCA Input: dQ/dV Curves - mu')
+colormap('jet')
+
+% tick_range = min_cycle:((max_cycle - min_cycle)/10):max_cycle;
+% cb = colorbar('TickLabels', tick_range);
+% ylabel(cb, 'Observed Cycle Life')
+set(gcf, 'Position', get(0,'Screensize'));
+
+% figure()
+subplot(2,1,2)
+% yyaxis right
+plot(1:1000*numCycles, coeff(:,1), 'k')
+xlabel('PCAdata Index')
+ylabel('Principal Component 1 Coefficient')
+title('PCA Output: Principal Component 1 Coefficients')
+
+%{
 %% Plot percent variance explained
 figure()
 plot(explained,'o-')
@@ -127,7 +147,7 @@ print(gcf, file_name,'-dpng')
 figure('NumberTitle', 'off', 'Name', 'Score vs Battery Index');
 for j = 1:size(score,2)
     num_test = 0;
-    subplot(6,6,j)
+    subplot(8,4,j)
     hold on
     for i = 1:numBat
         if mod(i,4) ~= 0
@@ -207,7 +227,7 @@ file_name = char(strcat('ScorevsScore12Test_', string(startAt), '_', ...
     string(forEvery), '_', string(numCycles)));
 % savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
-
+%}
 
 %% PCA regression
 color_train = colormap(winter(numBat - num_test));
@@ -224,6 +244,11 @@ rmse_train = sqrt(mean((bat_label_train - Y_pred) .^2));
 
 disp(['RMSE Train: ', num2str(rmse_train)])
 
+train_pererror = (abs(bat_label_train - Y_pred) ./ Y_pred);
+train_allpererr = mean(train_pererror);
+
+disp(['Percent error for Train: ', num2str(train_allpererr * 100), '%'])
+
 num_test = 0;
 figure()
 for i = 1:numBat
@@ -236,7 +261,7 @@ for i = 1:numBat
     end
 end
 hold on
-plot(linspace(200, 2000),linspace(200,2000), 'k')
+plot(linspace(400, 1800),linspace(400,1800), 'k')
 xlabel('Predicted Cycle Life')
 ylabel('Current Cycle Life')
 title(['Cycle ' num2str(startAt+1), '-', num2str(startAt+numCycles)]) 
@@ -263,6 +288,11 @@ Y_test_pred = X_test * b;
 
 rmse_test = sqrt(mean((bat_label_test - Y_test_pred) .^2));
 disp(['RMSE Test: ', num2str(rmse_test)])
+
+test_pererror = (abs(bat_label_test - Y_test_pred) ./ Y_test_pred);
+test_allpererr = mean(test_pererror);
+
+disp(['Percent error for Test: ', num2str(test_allpererr * 100), '%'])
 
 for i = 1:numTestBat
     plot(Y_test_pred(i), bat_label(i*4), ...
@@ -353,10 +383,20 @@ end
 figure()
 scatter(b2_Y, b2_bat_label)
 hold on
-plot(linspace(-400, 1000),linspace(-400,1000), 'k')
+plot(linspace(0, 900),linspace(0,900), 'k')
 set(gcf, 'Position', get(0,'Screensize'));
 xlabel('Predicted Cycle Life')
 ylabel('Observed Cycle Life')
+title('Batch 2 predictions using derived model')
+
+
+b2_rmse = sqrt(mean((b2_bat_label - b2_Y) .^ 2));
+disp(['RMSE for Batch2: ', num2str(b2_rmse)])
+
+b2_pererror = (abs(b2_bat_label - b2_Y) ./ b2_Y);
+b2_allpererr = mean(b2_pererror);
+
+disp(['Percent error for batch 2 predictions: ', num2str(b2_allpererr*100), '%'])
 
 b2_policy_names = [];
 for i = 1:b2_numBat
