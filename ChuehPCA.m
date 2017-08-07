@@ -87,7 +87,22 @@ cd (folder_path)
 save(strcat('pcaResultsTest_', string(startAt), '_', string(forEvery), ...
     '_', string(numCycles)), 'coeff', 'score', 'latent', 'explained', 'mu')
 
-%% Plot the PCAdata
+%% Plot the PCAdata 
+num_test = 0;
+figure ()
+for i = 1:numBat
+    if mod(i,4) ~= 0
+        color_ind = batt_color_grade(i);
+        plot(1:1000*numCycles, PCAdata((i-num_test),:), ...
+        'Color', CM(color_ind,:))
+        hold on
+    else
+        num_test = num_test + 1;
+    end
+    
+end
+
+%% Plot the PCAdata minus mu and the PC1 score
 num_test = 0;
 figure ()
 subplot(2,1,1)
@@ -103,13 +118,6 @@ for i = 1:numBat
     end
     
 end
-
-x_names = zeros(numCycles*numel(batch1(1).cycles(151).discharge_dQdVvsV.V),1); % = batch1(1).cycles(151).discharge_dQdVvsV.V;
-for i = 1:numCycles
-    x_names((i-1)*1000+1:i*1000,1) = batch1(1).cycles(151).discharge_dQdVvsV.V;
-end
-
-set(gca, 'xtick', [1:1000], 'xticklabel', x_names)
 
 xlabel('PCAdata Index')
 ylabel('dQ/dV (Ahs/V)')
@@ -129,7 +137,7 @@ xlabel('PCAdata Index')
 ylabel('Principal Component 1 Coefficient')
 title('PCA Output: Principal Component 1 Coefficients')
 
-%{
+
 %% Plot percent variance explained
 figure()
 plot(explained,'o-')
@@ -227,7 +235,7 @@ file_name = char(strcat('ScorevsScore12Test_', string(startAt), '_', ...
     string(forEvery), '_', string(numCycles)));
 % savefig(gcf, file_name);
 print(gcf, file_name,'-dpng')
-%}
+
 
 %% PCA regression
 color_train = colormap(winter(numBat - num_test));
